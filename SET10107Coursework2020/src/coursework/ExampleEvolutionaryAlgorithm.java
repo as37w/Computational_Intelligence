@@ -1,6 +1,7 @@
 package coursework;
 
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 
@@ -42,6 +43,7 @@ public class ExampleEvolutionaryAlgorithm extends NeuralNetwork {
 			 * You must set the best Individual at the end of a run
 			 * 
 			 */
+			
 
 			// Select 2 Individuals from the current population. Currently returns random Individual
 			Individual parent1 = tournamentSelection(); 
@@ -52,12 +54,19 @@ public class ExampleEvolutionaryAlgorithm extends NeuralNetwork {
 			
 			//mutate the offspring
 			creepMutate(children);
+			//bitSwap(children);
+			//scrambleMutation(children);
+			
+			//Sawtooth diversifier
+			//sawTooth();
 			
 			// Evaluate the children
-			evaluateIndividuals(children);			
-
+			evaluateIndividuals(children);	
+		
+			
 			// Replace children in population
 			replace(children);
+			
 
 			// check to see if the best has improved
 			best = getBest();
@@ -179,24 +188,27 @@ public class ExampleEvolutionaryAlgorithm extends NeuralNetwork {
 			children.add(parent1.copy());
 			children.add(parent2.copy());
 		}
-		
-		int counter = 0;
-		Individual child = new Individual();
-		int crossoverPoint = Parameters.random.nextInt(parent1.chromosome.length);
-		
-		while(counter < 2)
-		{
-			for(int i=0; i < crossoverPoint; i++) {
-				child.chromosome[i] = parent1.chromosome[i];
-			}
+		else {
+			int counter = 0;
+			Individual child = new Individual();
+			int crossoverPoint = Parameters.random.nextInt(parent1.chromosome.length);
 			
-			for(int i=crossoverPoint; i < parent2.chromosome.length; i++ )
+			while(counter < 2)
 			{
-				child.chromosome[i] = parent2.chromosome[i];
+				for(int i=0; i < crossoverPoint; i++) {
+					child.chromosome[i] = parent1.chromosome[i];
+				}
+				
+				for(int i=crossoverPoint; i < parent2.chromosome.length; i++ )
+				{
+					child.chromosome[i] = parent2.chromosome[i];
+				}
+				
+				children.add(child);
 			}
-			
-			children.add(child);
 		}
+		
+		
 		
 		return children;
 		
@@ -252,7 +264,7 @@ public class ExampleEvolutionaryAlgorithm extends NeuralNetwork {
 	 * 
 	 */
 	
-	private void BitSwap(ArrayList<Individual> individuals) {
+	private void bitSwap(ArrayList<Individual> individuals) {
         for (Individual individual : individuals) {
             for (int i = 0; i < individual.chromosome.length; i++) {
                 if (Parameters.random.nextDouble() < Parameters.mutateRate) {
@@ -269,14 +281,55 @@ public class ExampleEvolutionaryAlgorithm extends NeuralNetwork {
         double mutationRate = Parameters.mutateRate;
         for(Individual individual : individuals) {
             for(int i = 0; i < mutationRate; i++){
-                int index = Parameters.random.nextInt(individual.chromosome.length);
-                individual.chromosome[index] += ThreadLocalRandom.current().nextDouble(-5, 5);
+            	if (Parameters.random.nextDouble() < Parameters.mutateRate) {
+            		 int index = Parameters.random.nextInt(individual.chromosome.length);
+                     individual.chromosome[index] += ThreadLocalRandom.current().nextDouble(-5, 5);
+            	}
+               
             }
         }
     }
 	
+	private void scrambleMutation(ArrayList<Individual> individuals) {
+		 double mutationRate = Parameters.mutateRate;
+		 for(Individual individual : individuals) {
+			 if (Parameters.random.nextDouble() < Parameters.mutateRate) {
+				 for(int i = 0; i < individuals.size(); i++) {
+					 int point1 = randomNumber(0, individual.chromosome.length);
+					 int point2 = randomNumber(0,individual.chromosome.length);
+					 
+					 while(point1 >= point2) {
+						 point1 = randomNumber(0, individual.chromosome.length);
+						 point2 = randomNumber(0,individual.chromosome.length);
+					 }
+					 
+					 for(int j=0; j<5; j++) {
+						 int index1 = randomNumber(point1, point2+1);
+						 int index2 = randomNumber(point1, point2+1);
+						 
+						 double beforeScramble = individual.chromosome[index1];
+						 individual.chromosome[index1] = individual.chromosome[index2];
+						 individual.chromosome[index2] = beforeScramble;	 
+					 }
+				 }
+			 }
+			
+			 
+		 }
+	}
 	
+	private void sawTooth(){
+        if(evaluations % 100 == 0){
+            if(population.size() >= 10){
+            	int worst = getWorstIndex();
+                population.remove(worst);
+            }else{
+                initialise();
+            }
+        }
+    }
 
+ 
 
 	/**
 	 * 
@@ -313,6 +366,11 @@ public class ExampleEvolutionaryAlgorithm extends NeuralNetwork {
 		}
 		return idx;
 	}	
+	private int randomNumber(int min , int max) {
+		Random r = new Random();
+		double d = min + r.nextDouble() * (max - min);
+		return (int)d;
+	}
 
 	@Override
 	public double activationFunction(double x) {
